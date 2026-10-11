@@ -1,2 +1,106 @@
-# VoidLinux_installation_guide
-Just a simple guide to installing glibc Void Linux with encryption and Limine
+# Void Linux glibc encryption + limine bootloader guide.
+A pretty short and simple guide for installing Void Linux with partial disk encryption and using Limine as the bootloader.
+
+void-live login: root
+Password: voidlinux
+
+ㅤ# /bin/bash
+Though not necessary, I'd recommend to enter bash (mode?) so we'll have autocompletion and other nice stuff.
+
+I'll assume that the drive you want to install Void Linux on is named nvme0n1, though it could be different for you(e.g. vda, sda)
+
+ㅤ# cfdisk /dev/nvme0n1
+Create first, at least 256MB partition, change it's type to "EFI System".
+Create a second partition with all of the size that's left. We don't need to change the type of this partition.
+
+ㅤ# cryptsetup luksFormat /dev/nvme0n1p2
+ㅤ# cryptsetup luksOpen /dev/nvme0n1p2 void
+Lets encrypt a partition and open it, while giving it a name, such as "void", though using any other name that you want is fine.
+
+ㅤ# mkfs.ext4 /dev/mapper/void
+ㅤ# mkfs.vfat -F32 /dev/nvme0n1p1
+Making filesystems for both of out partitions, worth mentioning that you can use any other filesystem for the root partition, though for example XFS will require installing other packages, and Btrfs will require configuration that won't be in this tutorial, thouhg you can find it online in the Void Linux Handbook and YouTube.
+
+ㅤ# mkdir -p /mnt/var/db/xbps/keys
+ㅤ# cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys/
+Now we will make a directory to store the keys and copy all of them into just created directory.
+
+ㅤ# xbps-install -Sy -R https://repo-default.voidlinux.org/current -r /mnt base-system cryp  tsetup limine nano
+We are now installing packages for out system. I'll add that base-system could be replaces with base-container for a more barebones setup, though this will require more configuration; cryptsetup package is necessary for this tutorial, since we are doing partial disk encryption, limine is also necessary, but could be replaced with GRUB if you want to (don't recommend personally); nano could be replaces with any other text editor of your liking (e.g. emacs, vim, neovim).
+
+ㅤ# xgenfstab -U /mnt > /mnt/etc/fstab
+Lets generate fstab with this command, so our system will know how to initialize our drives.
+
+ㅤ# xchroot /mnt /bin/bash
+chroot into /mnt in bash (mode?) so we'll, again, have autocompletion and other benefits.
+
+[xchroot /mnt] # passwd
+New password:
+Retype new password:
+passwd: password updated succesfully
+Just changing our root password.
+
+[xchroot /mnt] # useradd -m -G wheel,network,video,input user
+[xchroot /mnt] # passwd user
+New password:
+Retype new password:
+passwd: password updated succesfully
+We are creating a user that will be in wheel, network, video and input groups with name user, and we also change the password for this user.
+
+[xchroot /mnt] # echo voidlinux > /etc/hostname
+Give our system a hostname, which could be, obviously, pretty much anything.
+
+[xchroot /mnt] # echo "LANG=en_US.UTF-8" > /etc/locale.conf
+[xchroot /mnt] # echo "en_US.UTF-8 UTF-8" >> /etc/default/libc-locales
+[xchroot /mnt] # xbps-reconfigure -f glibc-locales
+Configured out locales. If you don't know your locale, you can go into /etc/default/libc-locales and find it there!
+
+[xchroot /mnt] # ln -sf /usr/share/zoneinfo/Antarctica/Syowa /etc/localtime
+[xchroot /mnt] # echo localtime > /etc/hwclock
+Set our timezone and sync hardware clock with it.
+
+[xchroot /mnt] # cd /boot
+[xchroot /mnt] # mkdir -p EFI/BOOT
+[xchroot /mnt] # cp /usr/share/limine/BOOTX64.EFI EFI/BOOT/
+Make a directory where out limine config will be and copy the right .EFI into this newly made directory.
+
+[xchroot /mnt] # blkid -s UUID -o value /dev/nvme0n1p2 > EFI/BOOT/limine.conf
+[xchroot /mnt] # ls >> EFI/BOOT/limine.conf
+We will echo block ID of our drive with encryption into the limine.conf file. Also we'll list the insides of /boot into the config file.
+
+[xchroot /mnt] # nano EFI/BOOT/limine.conf
+
+EFI
+config-<version>
+initramfs-<version>.img
+vmlinuz-linux-<version>
+079e3ce-b3d9-4d23-bc20-3e052d5fc75e
+
+You will something like this. Files might have a bit different names, but as long as you have initramfs, vmlinuz and UUID of the root partition, everything should be fine. We can get rid of the EFI and config-<version>, since we won't be using them in any way(don't delete the files, just erase them from the limine.conf). You should turn it something like this:
+
+timeout: 5
+
+/Void Linux
+    protocol: linux
+	  kernel_path: vmlinuz-linux-<version>
+  	module_path: initramfs-<version>.img
+	  cmdline: root=/dev/mapper/luks-079e3ce-b3d9-4d23-bc20-3e052d5fc75e rd.luks.uuid=079e3ce-b3d9-4d23-bc20-3e052d5fc75e
+
+Just like that we are done configuring our limine bootloader. The last step in out installation process would be going into /etc/sudoers and changing some stuff.
+
+[xchroot /mnt] # nano /etc/sudoers
+
+ㅤ## Uncomment to allow members of group wheel to execute any command
+ㅤ# %wheel ALL=(ALL:ALL) ALL
+
+Just uncomment that line and we'll be done with the installation of Void Linux, don't reboot yet though!!!
+
+ㅤ# exit
+
+You might need to exit one more time until you see just a plain shell with '#'.
+Once we are clean, we can unmount our drives and reboot!
+
+ㅤ# umount -lR /mnt
+ㅤ# reboot
+
+P.S this is how I personally install Void Linux. really sorry if the explanation was shitty or there's grammar errors. English is not my first language and I'm still learning it, so, pleeeassseee accept my deepest apologies. Don't know if I like need to say that or something, but no AI was used in the making of this tutorial (you can probably tell by the fact how shitty it is). Big thanks to J. Tekk, tony-btw and Void Linux handbook, 'cause I used their content when I was installing Void for the first time. And big thanks to anybody who read this thing to this point :D 
