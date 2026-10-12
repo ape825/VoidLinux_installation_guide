@@ -87,7 +87,7 @@ timeout: 5
     protocol: linux
 	kernel_path: vmlinuz-linux-<version>
 	module_path: initramfs-<version>.img
-	cmdline: root=/dev/mapper/luks-079e3ce-b3d9-4d23-bc20-3e052d5fc75e rd.luks.uuid=079e3ce-b3d9-4d23-bc20-3e052d5fc75e
+	cmdline: root=/dev/mapper/luks-079e3ce-b3d9-4d23-bc20-3e052d5fc75e rd.luks.uuid=079e3ce-b3d9-4d23-bc20-3e052d5fc75e rw
 
 Just like that we are done configuring our limine bootloader. The last step in out installation process would be going into /etc/sudoers and changing some stuff.
 
