@@ -20,6 +20,10 @@ Lets encrypt a partition and open it, while giving it a name such as "void", tho
 # mkfs.vfat -F32 /dev/nvme0n1p1
 Making filesystems for both of our partitions, worth mentioning that you can use pretty much any other filesystem for the root partition, though for example XFS will require installing other packages, and Btrfs will require configuration that won't be in this tutorial, though you can find it online in the Void Linux Handbook and on YouTube.
 
+# mount /dev/mapper/void /mnt
+# mkdir -p /mnt/boot
+# mount /dev/nvme0n1p1 /mnt/boot
+
 # mkdir -p /mnt/var/db/xbps/keys
 # cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys/
 Now we will make a directory to store the keys and copy all of them into just created directory.
